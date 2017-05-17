@@ -62,7 +62,7 @@ void OnPush(int _cmd, const AutoBuffer& _data) {
 
 	jbyteArray data_jba = NULL;
 
-	if(_data.Length() > 0) {
+	if (_data.Length() > 0) {
 		data_jba = JNU_Buffer2JbyteArray(env, _data);
 	} else {
 		xdebug2(TSF"the data.Lenght() < = 0");
@@ -70,7 +70,7 @@ void OnPush(int _cmd, const AutoBuffer& _data) {
 
 	JNU_CallStaticMethodByMethodInfo(env, KC2Java_onPush, (jint)_cmd, data_jba);
 
-	if(data_jba != NULL) {
+	if (data_jba != NULL) {
 		JNU_FreeJbyteArray(env, data_jba);
 	}
 
@@ -129,9 +129,9 @@ bool Req2Buf(int32_t _taskid,  void* const _user_context, AutoBuffer& _outbuffer
 
 	jboolean ret = JNU_CallStaticMethodByMethodInfo(env, KC2Java_req2Buf, (jint)_taskid, NULL, byte_array_output_stream_obj, errcode_array, _channel_select).z;
 
-	if(ret) {
+	if (ret) {
 		jbyteArray ret_byte_array = (jbyteArray)JNU_CallMethodByName(env, byte_array_output_stream_obj, "toByteArray", "()[B").l;
-		if(ret_byte_array != NULL) {
+		if (ret_byte_array != NULL) {
 			jsize alen = env->GetArrayLength(ret_byte_array);
 			jbyte* ba = env->GetByteArrayElements(ret_byte_array, NULL);
 			_outbuffer.Write(ba, alen);
@@ -162,7 +162,7 @@ WEAK_FUNC int Buf2Resp(int32_t _taskid, void* const _user_context, const AutoBuf
 
 	jbyteArray resp_buf_jba = NULL;
 
-	if(_inbuffer.Length() > 0) {
+	if (_inbuffer.Length() > 0) {
 		resp_buf_jba =  JNU_Buffer2JbyteArray(env, _inbuffer);
 	} else {
 		xdebug2(TSF"the decodeBuffer.Lenght() <= 0");
@@ -172,7 +172,7 @@ WEAK_FUNC int Buf2Resp(int32_t _taskid, void* const _user_context, const AutoBuf
 
 	jint ret = JNU_CallStaticMethodByMethodInfo(env, KC2Java_buf2Resp, (jint)_taskid, NULL, resp_buf_jba, errcode_array, _channel_select).i;
 
-	if(resp_buf_jba != NULL) {
+	if (resp_buf_jba != NULL) {
 		env->DeleteLocalRef(resp_buf_jba);
 	}
 
@@ -220,7 +220,7 @@ int GetLonglinkIdentifyCheckBuffer(AutoBuffer& _identify_buffer, AutoBuffer& _bu
     
 	jint ret = 0;
 	ret = JNU_CallStaticMethodByMethodInfo(env, KC2Java_getLongLinkIdentifyCheckBuffer, byte_array_outputstream_obj, byte_array_outputstream_hash, jcmdid_array).i;
-	if(ret == kCheckNext || ret == kCheckNever)
+	if (ret == kCheckNext || ret == kCheckNever)
 	{
 		xwarn2(TSF"getLongLinkIdentifyCheckBuffer uin == 0, not ready");
 		env->DeleteLocalRef(byte_array_outputstream_obj);
@@ -242,14 +242,14 @@ int GetLonglinkIdentifyCheckBuffer(AutoBuffer& _identify_buffer, AutoBuffer& _bu
     env->DeleteLocalRef(jcmdid_array);
 
 
-	if(ret_byte_hash != NULL) {
+	if (ret_byte_hash != NULL) {
 		jsize alen2 = env->GetArrayLength(ret_byte_hash);
 		jbyte* ba2 = env->GetByteArrayElements(ret_byte_hash, NULL);
 		_buffer_hash.Write(ba2, alen2);
 		env->ReleaseByteArrayElements(ret_byte_hash, ba2, 0);
 		env->DeleteLocalRef(ret_byte_hash);
 	}
-	if(ret_byte_array != NULL) {
+	if (ret_byte_array != NULL) {
 		jsize alen = env->GetArrayLength(ret_byte_array);
 		jbyte* ba = env->GetByteArrayElements(ret_byte_array, NULL);
 		_identify_buffer.Write(ba, alen);
@@ -279,14 +279,14 @@ bool OnLonglinkIdentifyResponse(const AutoBuffer& _response_buffer, const AutoBu
 
 	jbyteArray data_jba = NULL;
 
-	if(_response_buffer.Length() > 0) {
+	if (_response_buffer.Length() > 0) {
 		data_jba = JNU_Buffer2JbyteArray(env, _response_buffer);
 	} else {
 		xdebug2(TSF"the respbuffer.Lenght() < = 0");
 	}
 
 	jbyteArray hash_jba = NULL;
-	if(_identify_buffer_hash.Length() > 0) {
+	if (_identify_buffer_hash.Length() > 0) {
 		hash_jba = JNU_Buffer2JbyteArray(env, _identify_buffer_hash);
 	} else {
 		xdebug2(TSF"the hashCodeBuffer.Lenght() < = 0");
@@ -294,38 +294,26 @@ bool OnLonglinkIdentifyResponse(const AutoBuffer& _response_buffer, const AutoBu
 
 	jboolean ret = JNU_CallStaticMethodByMethodInfo(env, KC2Java_onLongLinkIdentifyResp, data_jba, hash_jba).z;
 
-	if(data_jba != NULL) {
+	if (data_jba != NULL) {
 		JNU_FreeJbyteArray(env, data_jba);
 	}
 
-	if(hash_jba != NULL) {
+	if (hash_jba != NULL) {
 		JNU_FreeJbyteArray(env, hash_jba);
 	}
 
     return ret != 0;
 }
 
+DEFINE_FIND_STATIC_METHOD(KC2Java_trafficData, KC2Java, "trafficData", "(II)V")
 WEAK_FUNC void TrafficData(ssize_t _send, ssize_t _recv) {
-	int net_info = getNetInfo();
-		
-	if (kWifi == net_info) {
-		ReportFlow(_recv, _send, 0, 0);
-	}else if (kMobile == net_info) {
-		ReportFlow(0, 0, _recv, _send);
-	} else {
-	
-	}
-}
-
-DEFINE_FIND_STATIC_METHOD(KC2Java_reportFlowData, KC2Java, "reportFlow", "(IIII)V")
-void ReportFlow(const int _wifi_recv_data_size, const int _wifi_send_data_size, int _mobile_recv_data_size, int _mobile_send_data_size) {
-	xverbose2(TSF"wifiRecvDataSize:%0, wifiSendDataSize:%1, mobileRecvDataSize:%2, mobileSendDataSize:%3", _wifi_recv_data_size, _wifi_send_data_size, _mobile_recv_data_size, _mobile_send_data_size);
 
 	VarCache* cache_instance = VarCache::Singleton();
 	ScopeJEnv scope_jenv(cache_instance->GetJvm());
 	JNIEnv *env = scope_jenv.GetEnv();
 
-	JNU_CallStaticMethodByMethodInfo(env, KC2Java_reportFlowData, (jint)_wifi_recv_data_size, (jint)_wifi_send_data_size, (jint)_mobile_recv_data_size, (jint)_mobile_send_data_size);
+	JNU_CallStaticMethodByMethodInfo(env, KC2Java_trafficData, (jint)_send, (jint)_recv);
+
 }
 
 DEFINE_FIND_STATIC_METHOD(KC2Java_reportNetConnectInfo, KC2Java, "reportConnectStatus", "(II)V")

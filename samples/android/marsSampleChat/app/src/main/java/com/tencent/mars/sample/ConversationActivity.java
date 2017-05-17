@@ -216,29 +216,21 @@ public class ConversationActivity extends AppCompatActivity {
 
             @Override
             public void onPostDecode(Main.ConversationListResponse response) {
-                // update data list only
-                if (response.list == null) {
-                    Log.i(TAG, "getconvlist: empty response list");
-                    progressBar.setVisibility(View.VISIBLE);
-                    return;
-                }
-                else if (response.list.length == 0) {
-                    Log.i(TAG, "getconvlist: empty response list");
-                    progressBar.setVisibility(View.VISIBLE);
-                    return;
-                }
 
-                for (Main.Conversation conv : response.list) {
-                    dataList.add(new Conversation(conv.name, conv.topic, conv.notice));
-                }
             }
 
             @Override
-            public void onTaskEnd() {
+            public void onTaskEnd(int errType, int errCode) {
                 runOnUiThread(new Runnable() {
 
                     @Override
                     public void run() {
+                        if (response != null) {
+                            for (Main.Conversation conv : response.list) {
+                                dataList.add(new Conversation(conv.name, conv.topic, conv.notice));
+                            }
+                        }
+
                         if (!dataList.isEmpty()) {
                             progressBar.setVisibility(View.INVISIBLE);
                             conversationListAdapter.list.clear();

@@ -31,6 +31,9 @@ All rights reserved.
 Copyright(c)2004,Cisco URP imburses and Network Information Center in Beijing University of Posts and Telecommunications researches
 All right reserved
 
+5. google protobuf
+Copyright 2014, Google Inc.  All rights reserved.
+
 
 Terms of the BSD 3-Clause License:
 --------------------------------------------------------------------
@@ -167,6 +170,10 @@ Copyright (C) 2007 The Android Open Source Project
 
 2. CallStack.cpp
 Copyright (C) 2007 The Android Open Source Project
+
+3. protobuf-objc
+Copyright 2010 Booyah Inc.
+Copyright 2008 Cyrus Najmabadi
 
 
 Terms of the Apache License Version 2.0:

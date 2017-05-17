@@ -75,8 +75,6 @@ void DynamicTimeout::CgiTaskStatistic(std::string _cgi_uri, unsigned int _total_
 }
 
 void DynamicTimeout::ResetStatus() {
-    if (dyntime_status_ == kExcellent) {
-    }
     
     dyntime_status_ = kEValuating;
     dyntime_latest_bigpkg_goodtime_ = 0;
@@ -114,14 +112,13 @@ void DynamicTimeout::__StatusSwitch(std::string _cgi_uri, int _task_status) {
                 dyntime_latest_bigpkg_goodtime_ = gettickcount();
             }
         }
-        	break;
+        /* no break, next case*/
         case kDynTimeTaskMeetExpectTag:
         {
             if (dyntime_status_ == kEValuating) {
                 dyntime_continuous_good_count_++;
             }
-            else if (dyntime_status_ == kExcellent) {
-            }
+
             dyntime_failed_normal_count_.set(dyntime_fncount_pos_);
         }
             break;
@@ -131,8 +128,7 @@ void DynamicTimeout::__StatusSwitch(std::string _cgi_uri, int _task_status) {
                 dyntime_continuous_good_count_ = 0;
                 dyntime_latest_bigpkg_goodtime_ = 0;
             }
-            else if (dyntime_status_ == kExcellent) {
-            }
+
             dyntime_failed_normal_count_.set(dyntime_fncount_pos_);
         }
             break;

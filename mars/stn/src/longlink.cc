@@ -64,9 +64,11 @@ class LongLinkConnectObserver : public MComplexConnect {
     	connecting_index_[_index] = 1;
     }
     virtual void OnConnected(unsigned int _index, const socket_address& _addr, SOCKET _socket, int _error, int _rtt) {
-        if (0 == _error)
-        {}
-        else {
+        if (0 == _error) {
+            if (!OnShouldVerify(_index, _addr)) {
+                connecting_index_[_index] = 0;
+            }
+        } else {
             xwarn2(TSF"index:%_, connnet fail host:%_, iptype:%_", _index, ip_items_[_index].str_host, ip_items_[_index].source_type);
             xassert2(longlink_.fun_network_report_);
 
@@ -76,7 +78,10 @@ class LongLinkConnectObserver : public MComplexConnect {
         }
     }
 
-    virtual bool OnShouldVerify(unsigned int _index, const socket_address& _addr) { return true;}
+    virtual bool OnShouldVerify(unsigned int _index, const socket_address& _addr) {
+        return longlink_complexconnect_need_verify();
+    }
+    
     virtual bool OnVerifySend(unsigned int _index, const socket_address& _addr, SOCKET _socket, AutoBuffer& _buffer_send) {
         AutoBuffer body;
         longlink_noop_req_body(body);
@@ -258,7 +263,7 @@ bool LongLink::__NoopReq(XLogger& _log, Alarm& _alarm, bool need_active_timeout)
         _alarm.Cancel();
         _alarm.Start(need_active_timeout ? (2* 1000) : (10 * 1000));
     } else {
-        xassert2(false, "send noop fail") >> _log;
+        xerror2("send noop fail");
     }
     
     return suc;
@@ -342,7 +347,7 @@ void LongLink::__Run() {
     }
     
     uint64_t cur_time = gettickcount();
-    xinfo_function(TSF"LongLink Rebuild span:%_, net:%_", cur_time - conn_profile_.disconn_time, getNetInfo());
+    xinfo_function(TSF"LongLink Rebuild span:%_, net:%_", conn_profile_.disconn_time != 0 ? cur_time - conn_profile_.disconn_time : 0, getNetInfo());
     
     ConnectProfile conn_profile;
     conn_profile.start_time = cur_time;
@@ -719,8 +724,7 @@ End:
             if (nwrite_size <= (maxnwrite + it->writelen)) {
                 xinfo2(TSF"taskid:%_, cmdid:%_, taskid:%_ ; ", it->taskid, it->cmdid, it->taskid) >> close_log;
                 break;
-            }
-            else {
+            } else {
                 maxnwrite += it->writelen;
                 xinfo2(TSF"taskid:%_, cmdid:%_, task_info:%_ ; ", it->taskid, it->cmdid, it->task_info) >> close_log;
             }
@@ -748,8 +752,7 @@ End:
 				xinfo2(TSF"taskid:%_, cmdid:%_, task_info:%_; ", taskid, cmdid, sent_taskids[taskid]) >> close_log;
 				if (LONGLINK_UNPACK_CONTINUE == unpackret || LONGLINK_UNPACK_FALSE == unpackret) {
 					break;
-				}
-				else {
+				} else {
 					sent_taskids.erase(taskid);
 					bufrecv.Move(-(int)(packlen));
 				}
@@ -761,12 +764,16 @@ End:
     struct tcp_info _info;
     if (getsocktcpinfo(_sock, &_info) == 0) {
     	char tcp_info_str[1024] = {0};
-    		xinfo2(TSF"task socket close getsocktcpinfo:%_", tcpinfo2str(&_info, tcp_info_str, sizeof(tcp_info_str))) >> close_log;
+        xinfo2(TSF"task socket close getsocktcpinfo:%_", tcpinfo2str(&_info, tcp_info_str, sizeof(tcp_info_str))) >> close_log;
     }
 #endif
 }
 
 void LongLink::__NotifySmartHeartbeatHeartReq(ConnectProfile& _profile, uint64_t _internal, uint64_t _actual_internal) {
+    if (longlink_noop_interval() > 0) {
+        return;
+    }
+    
     if (!smartheartbeat_) return;
     
 	NoopProfile noop_profile;
@@ -779,6 +786,10 @@ void LongLink::__NotifySmartHeartbeatHeartReq(ConnectProfile& _profile, uint64_t
 }
 
 void LongLink::__NotifySmartHeartbeatHeartResult(bool _succes, bool _fail_of_timeout, ConnectProfile& _profile) {
+    if (longlink_noop_interval() > 0) {
+        return;
+    }
+    
     if (!smartheartbeat_) return;
     
 	if (!_profile.noop_profiles.empty()) {
@@ -791,11 +802,19 @@ void LongLink::__NotifySmartHeartbeatHeartResult(bool _succes, bool _fail_of_tim
 }
 
 void LongLink::__NotifySmartHeartbeatJudgeMIUIStyle() {
+    if (longlink_noop_interval() > 0) {
+        return;
+    }
+    
     if (!smartheartbeat_) return;
 	smartheartbeat_->JudgeMIUIStyle();
 }
 
 void LongLink::__NotifySmartHeartbeatConnectStatus(TLongLinkStatus _status) {
+    if (longlink_noop_interval() > 0) {
+        return;
+    }
+    
     if (!smartheartbeat_) return;
 
     switch (_status) {
@@ -814,6 +833,11 @@ void LongLink::__NotifySmartHeartbeatConnectStatus(TLongLinkStatus _status) {
 }
 
 unsigned int LongLink::__GetNextHeartbeatInterval() {
+    
+    if (longlink_noop_interval() > 0) {
+        return longlink_noop_interval();
+    }
+    
     if (!smartheartbeat_) return MinHeartInterval;
     
     bool use_smartheart_beat  = false;
